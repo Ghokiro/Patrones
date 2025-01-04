@@ -3,6 +3,9 @@
 """
     Codificar una app relacionada a una cuenta bancaria donde
     las clases se copien en profundidad (deep coopy) 
+    
+    NOTA: En los próximos ejercicios debo documentar con brevedad
+        la codificación...
 """
 
 """ LIBRERÍAS """
@@ -35,83 +38,89 @@ class ICuentaTransaccion(ICuentaDeposito):
     def reducir_intento_transaccion(self) -> None:
         pass
 
-""" Atributos para las clases """
-class Atributos:
-    """ Define los atributos base que debe contar una cuenta bancaria"""
-    """
-        ATRIBUTOS DE LA CLASE:
-        - numero cuenta: es el numero de la cuenta del cliente a la que se le transfiere dinero.
-        - nombre completo: es el nombre completo del cliente.
-        - balance crédito: es el valor adicional al balance el cual es prestado por el banco.
-        - balance: es el dinero actual que el cliente posee.
-    """
-    def __init__(self):
-        self.numero_cuenta = "No Asignado"
-        self.nombre_completo = "No Asignado"
-        self.balance_credito = 0.00
-        self.balance = 0.00
-
 """ Clase Principal para las cuentas bancarias """
 class Cuenta(ICuentaDeposito):
     """ Esta clase sirve de interfaz y prototipo para las demás clases de cuentas bancarias """
     """
-        CONSTRUCTOR:
-            - Instancia los atributos de la clase
+         ATRIBUTOS DE LA CLASE:
+            - numero cuenta: es el numero de la cuenta del cliente a la que se le transfiere dinero.
+            - nombre completo: es el nombre completo del cliente.
+            - balance crédito: es el valor adicional al balance el cual es prestado por el banco.
+            - balance: es el dinero actual que el cliente posee.
             
         MÉTODOS GET DE LA CLASE:
             - Numero Cuenta: retorna el numero de la cuenta del cliente.
             - Nombre Completo: Retorna el nombre completo del cliente.
             - Balance Crédito: Retorna el valor del crédito que puede tomar el cliente.
             - Balance: Retorna el saldo actual del cliente.
-        
+            
+            - balance credito: Metodo que retorna el monto del credito limite de la cuenta.
+            
+            
         MÉTODOS SETTER DE LA CLASE:
             - Balance: Recibe un monto de dinero el cual se le sumará al balance actual,
                 si recibe un monto negativo, se le restará el saldo actual.
             - Numero: Recibe el número de la cuenta del cliente por única vez.
             - Nombre Completo: Recibe el nombre del cliente por única vez.
         
-        MÉTODOS:     
-            - copy: Permitirá realizar la clonación de las subclases.
+        MÉTODOS:
+            - reducir intento transaccion: consume un intento de transaccion de la cuenta.     
+            - Clonar: Permitirá realizar la clonación de las subclases.
             - str: Retornará la información de la cuenta del cliente.
     """
 
-    def __init__(self) -> None:
-        self._atributos = Atributos()
+    def __init__(self, limite_transaccion: int) -> None:
+        self._numero_cuenta = "No Asignado"
+        self._nombre_completo = "No Asignado"
+        self._balance_credito = 0.00
+        self._balance = 0.00
+        self._limites_transacciones = limite_transaccion
 
     @property
     def numero_cuenta(self) -> str:
-        return self._atributos.numero_cuenta
+        return self._numero_cuenta
 
     @numero_cuenta.setter
     def numero_cuenta(self, numero) -> None:
-        if self._atributos.numero_cuenta == "No Asignado":
-            self._atributos.numero_cuenta = numero
+        if self._numero_cuenta == "No Asignado":
+            self._numero_cuenta = numero
 
     @property
     def nombre_completo(self) -> str:
-        return self._atributos.nombre_completo
+        return self._nombre_completo
 
     @nombre_completo.setter
     def nombre_completo(self, nombre_completo) -> None:
-        if self._atributos.nombre_completo == "No Asignado":
-            self._atributos.nombre_completo = nombre_completo
+        if self._nombre_completo == "No Asignado":
+            self._nombre_completo = nombre_completo
 
     @property
     def balance(self) -> float:
-        return self._atributos.balance
+        return self._balance
 
     @balance.setter
     def balance(self, valor: float) -> None:
-        self._atributos.balance += valor
+        self._balance += valor
 
-    @abstractmethod
+    @property
+    def balance_credito(self) -> float:
+        return self._balance_credito
+
+    def reducir_intento_transaccion(self) -> None:
+        """ Reduce el número de intento actual de la cuenta de ahorro cuando
+            realiza una transacción """
+        if self._limites_transacciones > 0:
+            self._limites_transacciones -= 1
+        else:
+            raise ExcepcionLimiteTransaccion("Limite de intentos de transacciones alcanzados.")
+
     def clonar(self):
-        pass
+        return deepcopy(self)
 
     def __str__(self) -> str:
-        info = {"Número de cuenta": self._atributos.numero_cuenta,
-                "Cliente": self._atributos.nombre_completo,
-                "Balance": "${:,.2f}".format(self._atributos.balance),}
+        info = {"Número de cuenta": self._numero_cuenta,
+                "Cliente": self._nombre_completo,
+                "Balance": "${:,.2f}".format(self._balance),}
 
         return f"{info}"
 
@@ -121,53 +130,19 @@ class CuentaDeAhorro(Cuenta, ICuentaTransaccion):
     """ ATRIBUTOS: 
         - limites de transacciones: define el numero de transacciones que el cliente
                 puede realizar, quizás por día.
-                
-        MÉTODO:
-            - balance credito: Metodo que retorna el monto del credito limite de la cuenta.
-            - clonar: Realiza una clonación profunda de esta clase.
-            - reducir intento transaccion: consume un intento de transaccion de la cuenta.
     """
     def __init__(self) -> None:
-        super().__init__()
-        self.limites_transacciones = 5
+        super().__init__(10)
 
-    @property
-    def balance_credito(self) -> float:
-        return self._atributos.balance_credito
-
-    def reducir_intento_transaccion(self) -> None:
-        """ Reduce el número de intento actual de la cuenta de ahorro cuando
-            realiza una transacción """
-        if self.limites_transacciones > 0:
-            self.limites_transacciones -= 1
-        else:
-            raise ExcepcionLimiteTransaccion("Limite de intentos de transacciones alcanzados.")
-
-    def clonar(self):
-        return deepcopy(self)
 
 class CuentaCorriente(Cuenta, ICuentaTransaccion):
     """ Permite la creación de cuentas corrientes para los clientes """
     """ ATRIBUTOS: 
         - balance crédito: Se asigna el balance del crédito inicial del cliente.
-
-        MÉTODO:
-            - balance credito: Metodo que retorna el monto del credito limite de la cuenta.
-            - clonar: Realiza una clonación profunda de esta clase.
     """
     def __init__(self) -> None:
         super().__init__()
-        self._atributos.balance_credito = 25000.00
-
-    @property
-    def balance_credito(self) -> float:
-        return self._atributos.balance_credito
-
-    def reducir_intento_transaccion(self) -> None:
-        pass
-
-    def clonar(self):
-        return deepcopy(self)
+        self._balance_credito = 25000.00
 
 """ CLASE DEPÓSITO """
 class Deposito:
@@ -256,14 +231,12 @@ if __name__ == "__main__":
     gestor.registrar_cuenta("A1", ahorro)
     gestor.registrar_cuenta("C1", corriente)
 
-
     manuel_corriente: CuentaCorriente = gestor.obtener_cuenta('C1').clonar()
 
     manuel_corriente.numero_cuenta = "1001"
     manuel_corriente.nombre_completo = "Manuel Antonio Rodriguez"
 
     deposito.depositar(manuel_corriente, 15000)
-
 
     pedro_ahorro: CuentaDeAhorro = gestor.obtener_cuenta('A1').clonar()
 
