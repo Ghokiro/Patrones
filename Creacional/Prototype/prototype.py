@@ -5,9 +5,35 @@
     las clases se copien en profundidad (deep coopy) 
 """
 
-""" LIBRERÍAS"""
+""" LIBRERÍAS """
 from abc import abstractmethod, ABC
 from copy import deepcopy
+
+
+""" INTERFACES """
+
+""" Interfaz para depósitos a las cuentas receptoras """
+class ICuentaDeposito(ABC):
+    @property
+    @abstractmethod
+    def balance(self) -> float:
+        pass
+
+    @balance.setter
+    @abstractmethod
+    def balance(self, valor: float) -> None:
+        pass
+
+""" Interfaz para validar de los intentos de transacciones """
+class ICuentaTransaccion(ICuentaDeposito):
+    @property
+    @abstractmethod
+    def balance_credito(self) -> float:
+        pass
+
+    @abstractmethod
+    def reducir_intento_transaccion(self) -> None:
+        pass
 
 """ Atributos para las clases """
 class Atributos:
@@ -26,7 +52,7 @@ class Atributos:
         self.balance = 0.00
 
 """ Clase Principal para las cuentas bancarias """
-class Cuenta(ABC):
+class Cuenta(ICuentaDeposito):
     """ Esta clase sirve de interfaz y prototipo para las demás clases de cuentas bancarias """
     """
         CONSTRUCTOR:
@@ -44,8 +70,7 @@ class Cuenta(ABC):
             - Numero: Recibe el número de la cuenta del cliente por única vez.
             - Nombre Completo: Recibe el nombre del cliente por única vez.
         
-        MÉTODOS:
-                        
+        MÉTODOS:     
             - copy: Permitirá realizar la clonación de las subclases.
             - str: Retornará la información de la cuenta del cliente.
     """
@@ -72,10 +97,6 @@ class Cuenta(ABC):
             self._atributos.nombre_completo = nombre_completo
 
     @property
-    def balance_credito(self) -> float:
-        return self._atributos.balance_credito
-
-    @property
     def balance(self) -> float:
         return self._atributos.balance
 
@@ -95,24 +116,27 @@ class Cuenta(ABC):
         return f"{info}"
 
 """ Prototipo 1 """
-class CuentaDeAhorro(Cuenta):
+class CuentaDeAhorro(Cuenta, ICuentaTransaccion):
     """ Permite la creación de cuenta de ahorros para los clientes """
     """ ATRIBUTOS: 
         - limites de transacciones: define el numero de transacciones que el cliente
                 puede realizar, quizás por día.
                 
         MÉTODO:
-            - copy: Realiza una clonación profunda de esta clase.
+            - balance credito: Metodo que retorna el monto del credito limite de la cuenta.
+            - clonar: Realiza una clonación profunda de esta clase.
+            - reducir intento transaccion: consume un intento de transaccion de la cuenta.
     """
-
     def __init__(self) -> None:
         super().__init__()
         self.limites_transacciones = 5
 
-    """ FUNCIÓN REDUCIR INTENTO DE TRANSACCIÓN """
+    @property
+    def balance_credito(self) -> float:
+        return self._atributos.balance_credito
 
     def reducir_intento_transaccion(self) -> None:
-        """ Esta función Reduce el número de intento actual de la cuenta de ahorro cuando
+        """ Reduce el número de intento actual de la cuenta de ahorro cuando
             realiza una transacción """
         if self.limites_transacciones > 0:
             self.limites_transacciones -= 1
@@ -122,17 +146,25 @@ class CuentaDeAhorro(Cuenta):
     def clonar(self):
         return deepcopy(self)
 
-class CuentaCorriente(Cuenta):
+class CuentaCorriente(Cuenta, ICuentaTransaccion):
     """ Permite la creación de cuentas corrientes para los clientes """
     """ ATRIBUTOS: 
         - balance crédito: Se asigna el balance del crédito inicial del cliente.
 
         MÉTODO:
-            - copy: Realiza una clonación profunda de esta clase.
+            - balance credito: Metodo que retorna el monto del credito limite de la cuenta.
+            - clonar: Realiza una clonación profunda de esta clase.
     """
     def __init__(self) -> None:
         super().__init__()
         self._atributos.balance_credito = 25000.00
+
+    @property
+    def balance_credito(self) -> float:
+        return self._atributos.balance_credito
+
+    def reducir_intento_transaccion(self) -> None:
+        pass
 
     def clonar(self):
         return deepcopy(self)
@@ -148,7 +180,7 @@ class Deposito:
                     * monto: Es el dinero a depositar.
     """
     @staticmethod
-    def depositar(cuenta, monto: float) -> None:
+    def depositar(cuenta: ICuentaDeposito, monto: float) -> None:
         cuenta.balance = monto
 
 """ CLASE PARA LA TRANSACCIÓN ENTRE CUENTAS """
@@ -165,16 +197,15 @@ class Transaccion:
             Validador: Método privado que verifica la posibilidad de la transacción
                 observando el balance actual del de la cuenta emisora.                
     """
-    def transferir(self, emisor, receptor, monto: float) -> None:
+    def transferir(self, emisor: ICuentaTransaccion, receptor: ICuentaDeposito, monto: float) -> None:
         if self.__validador(emisor, monto):
             emisor.balance = -monto
             receptor.balance = monto
             print("Transferencia exitosa!")
 
     @staticmethod
-    def __validador(emisor, monto_a_transferir: float) -> bool:
-        if type(emisor) == CuentaDeAhorro:
-            emisor.reducir_intento_transaccion()
+    def __validador(emisor: ICuentaTransaccion, monto_a_transferir: float) -> bool:
+        emisor.reducir_intento_transaccion()
         credito = emisor.balance_credito
         balance = emisor.balance
         return balance + credito >= monto_a_transferir
