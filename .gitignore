@@ -1,4 +1,4 @@
-**/*/.idea/
-**/*/.venv/
-*/.idea/
-*/.venv/
+*/**/__pycache__/
+*/**/.idea/
+*/**/.venv/
+Creacional/Singleton/singleton_example.py
